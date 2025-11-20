@@ -8,38 +8,31 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aquable"
-version = "2.1.2"
-description = "Python service for controlling aquarium devices over Bluetooth Low Energy"
+version = "3.0.0-dev"
+description = "Home Assistant integration for controlling Chihiros aquarium devices over Bluetooth Low Energy"
 readme = "README.md"
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
-    "bleak==0.22.3",
-    "bleak_retry_connector==3.9.0",
-    "typer[all]==0.15.2",
-    "rich==13.9.4",
-    "fastapi==0.115.0",
-    "uvicorn[standard]==0.30.5",
-    "jinja2==3.1.4",
-    "python-multipart==0.0.9",
-    "httpx==0.27.2",
-    "websockets==14.1",
+    "bleak>=0.21.0",
+    "bleak-retry-connector>=3.0.0",
+    "pydantic>=2.0.0",
 ]
 
 [project.urls]
-"Source Code" = "https://github.com/calebvenner/aquable"
-"Bug Reports" = "https://github.com/calebvenner/aquable/issues"
+"Source Code" = "https://github.com/caleb-venner/AquaBle-dev"
+"Bug Reports" = "https://github.com/caleb-venner/AquaBle-dev/issues"
+"Home Assistant" = "https://www.home-assistant.io/"
 "Original Project" = "https://github.com/TheMicDiet/chihiros-led-control"
 
 [tool.setuptools]
 platforms = ["any"]
 include-package-data = true
-package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = [
-  "src",
+  "custom_components",
 ]
 
 [tool.setuptools_scm]
@@ -58,7 +51,9 @@ extend-ignore = [
 ]
 extend-exclude = [
     "archive",
-    "frontend/.venv",
+    ".venv",
+    "build",
+    "dist",
 ]
 
 [tool.doc8]

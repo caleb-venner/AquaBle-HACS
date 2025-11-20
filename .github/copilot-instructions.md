@@ -6,42 +6,38 @@ IMPORTANT: This file contains instructions for automated coding assistants and c
 
 ## Architecture Overview
 
-**FastAPI Backend + Vite TypeScript Frontend**: This project manages Chihiros aquarium devices (lights/dosers) over BLE. Backend uses `bleak` library for Bluetooth communication with a modular device class hierarchy. Frontend is a Vite-built SPA using Zustand for state management with command queue and optimistic updates.
+**Native Home Assistant Integration**: This project is a custom Home Assistant integration that manages Chihiros aquarium devices (lights/dosers) over BLE. Built using Home Assistant's integration patterns with `bleak` for Bluetooth communication.
 
 **Key Components**:
-- `BLEService` (`ble_service.py`): Main orchestration class managing device connections, status caching, and storage persistence to `~/.aquable/devices/`
-- `BaseDeviceStorage` (`base_device_storage.py`): Abstract base class providing unified file I/O for device configurations, metadata, and status in single JSON files per device
-- `DoserStorage`/`LightStorage` (`doser_storage.py`, `light_storage.py`): Type-safe facades extending BaseDeviceStorage for device-specific operations
-- `GlobalSettings` (`global_settings.py`): Manages global settings like display timezone in `~/.aquable/global_settings.json`
 - Device Classes (`device/`): `BaseDevice` with specific implementations (Doser, LightDevice, etc.) handling BLE connection lifecycle
 - Command System (`commands/encoder.py`): Encodes BLE commands with message ID management (skipping 0x5A/90), checksums, and structured byte arrays
-- REST API (`api/routes_*.py`): FastAPI endpoints for device control and status with consistent error responses
-- Frontend Store (`frontend/src/stores/deviceStore.ts`): Zustand store managing device state, command queue with retry logic, and UI state
+- Status Models (`storage/models.py`): Parse BLE notifications into `DoserStatus` and `LightStatus` dataclasses
+- HA Entity Platforms (planned): Sensor, number, light, time, select, button platforms for device control
+- HA Coordinator (planned): `DataUpdateCoordinator` for managing device state updates
+- Config Flow (planned): Bluetooth device discovery and setup UI
 
-**Data Flow**: BLE Device → `bleak` → `BaseDevice` → `BLEService` → REST API → Frontend Store → UI
+**Data Flow**: BLE Device → `bleak` → `BaseDevice` → UpdateCoordinator → HA Entity State → HA Frontend
 
 **BLE Protocol**: Reverse-engineered Chihiros UART service (`6E400001-B5A3-F393-E0A9-E50E24DCCA9E`) with RX/TX characteristics. Commands sent as notifications, responses received via notifications. Command structure: `[Command ID, Length, Message ID High/Low, Mode, Parameters..., Checksum]` with XOR checksum.
 
 ## Developer Workflows
 
 **Local Development**:
-- `make dev`: Run both frontend (Vite on :5173) and backend (uvicorn on :8000) servers concurrently
-- `make dev-front`: Frontend only with hot reload
-- `make dev-back`: Backend only with auto-reload and `PYTHONPATH=src`
-- Environment variables prefixed `AQUA_BLE_*` control runtime behavior (auto-reconnect, auto-discover, status wait timing)
-
-**Frontend Development**:
-- `cd frontend && npm install && npm run dev`: Start Vite dev server with HMR
-- `npm run build`: Create production build in `frontend/dist`
-- Backend proxies to Vite dev server when `AQUA_BLE_FRONTEND_DEV` is set, otherwise serves built assets
+- Install integration in HA development container or test instance
+- Copy `custom_components/aquable/` to HA's `config/custom_components/`
+- Restart Home Assistant to load integration
+- Add devices via Integrations UI (auto-discovery or manual)
+- Test with real BLE hardware nearby
 
 **Quality Assurance**:
-- `make test`: Run pytest suite with coverage
-- `make lint`: Execute pre-commit hooks (black, isort, flake8, doc8)
-- `pre-commit run --all-files`: Full quality check before commits
+- `pytest tests/` - Run test suite
+- `black custom_components/` - Format code
+- `isort custom_components/` - Sort imports
+- `flake8 custom_components/` - Lint code
 
-**Deployment**:
-- **Home Assistant Add-on (Ingress Only)**: The project is deployed exclusively as a Home Assistant add-on using Ingress. Install from Home Assistant Community Add-ons repository for automatic Bluetooth access, data persistence, web interface, and timezone management via Home Assistant integration. No other deployment methods are supported.
+**Installation for Users**:
+- **HACS Custom Repository**: Users add repository URL to HACS manually
+- No backward compatibility with old add-on (fresh start)
 
 ## Project Conventions
 
@@ -67,10 +63,6 @@ class LightDevice(BaseDevice):
     # LED lighting control with color channel management
 ```
 
-**UI and Documentation Guidelines**:
-- No icons in documentation or coded UI elements - use plain text descriptions instead
-- Keep interfaces clean and text-based for accessibility and simplicity
-
 ## Integration Points
 
 **BLE Protocol Details**:
@@ -79,9 +71,12 @@ class LightDevice(BaseDevice):
 - TX characteristic: `6E400003-B5A3-F393-E0A9-E50E24DCCA9E` (receive notifications)
 - Commands sent as BLE notifications, responses received via notifications
 
-**Home Assistant (Ingress)**: Add-on provides automatic Bluetooth access and data persistence through Home Assistant Ingress. Exposes devices as entities with MQTT integration potential. All frontend communication goes through Home Assistant's Ingress proxy system.
-
-**Frontend Communication**: REST API endpoints consumed by TypeScript frontend. Command queue managed client-side with retry logic and optimistic updates. Backend proxies frontend dev server during development.
+**Home Assistant Integration**:
+- Uses HA's `bluetooth` integration for device discovery
+- Config entries store device configuration (address, name, schedules)
+- Entity platforms expose devices as standard HA entities
+- Services provide bulk operations (full schedule updates)
+- No custom frontend - uses standard HA Lovelace UI
 
 ## Common Patterns
 
@@ -101,23 +96,34 @@ payload = commands.encode_manual_brightness(msg_id, channel, brightness)
 
 **Status Updates**:
 ```python
-# Request status, wait for notification, cache result
+# Request status, wait for notification, return parsed result
 await device.request_status()
 await asyncio.sleep(STATUS_CAPTURE_WAIT_SECONDS)
-cached_status = device.last_status
+status = device.last_status  # DoserStatus or LightStatus dataclass
 ```
 
-**API Response Formatting**:
+**HA Entity Update Pattern** (planned):
 ```python
-# Use serializers.cached_status_to_dict() for consistent API responses
-return cached_status_to_dict(service, cached_status)
+# Coordinator fetches data on interval
+async def _async_update_data(self):
+    await self.device.request_status()
+    await asyncio.sleep(1.5)
+    return self.device.last_status
+
+# Entities subscribe to coordinator
+@property
+def native_value(self):
+    return self.coordinator.data.some_field
 ```
 
-**Frontend Command Queue**:
-```typescript
-// Queue command with optimistic update and retry logic
-const commandId = await actions.queueCommand(address, request);
-await actions.processCommandQueue(); // Processes queue sequentially
+**HA Service Pattern** (planned):
+```python
+# Bulk operations via HA services
+async def handle_set_schedule(call):
+    device_id = call.data["device_id"]
+    coordinator = get_coordinator(device_id)
+    await coordinator.device.set_daily_dose(...)
+    await coordinator.async_request_refresh()
 ```
 
 ## Guidelines for AI Assistant
