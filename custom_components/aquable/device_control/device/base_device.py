@@ -21,19 +21,16 @@ from bleak_retry_connector import (
     retry_bluetooth_connection_error,
 )
 
-from ..commands import encoder as commands
-from ..constants import UART_RX_CHAR_UUID, UART_TX_CHAR_UUID
-from ..errors import CharacteristicMissingError
-from ..utils import get_env_float, get_env_int
-
-DEFAULT_ATTEMPTS = 3
-
-DISCONNECT_DELAY = 120
-BLEAK_BACKOFF_TIME = 0.25
-
-# Message ID session management constants (configurable via environment)
-MESSAGE_ID_RESET_INTERVAL_HOURS = get_env_float("AQUA_MSG_ID_RESET_HOURS", 24.0)
-MESSAGE_ID_MAX_SESSION_COMMANDS = get_env_int("AQUA_MSG_ID_MAX_COMMANDS", 1000)
+from .. import encoder as commands
+from ..constants import (
+    BLEAK_BACKOFF_TIME,
+    DEFAULT_ATTEMPTS,
+    DISCONNECT_DELAY,
+    MESSAGE_ID_MAX_SESSION_COMMANDS,
+    MESSAGE_ID_RESET_INTERVAL_HOURS,
+    UART_RX_CHAR_UUID,
+    UART_TX_CHAR_UUID,
+)
 
 
 class _classproperty:
@@ -129,44 +126,11 @@ class BaseDevice(ABC):
         self._msg_id = commands.next_message_id(self._msg_id)
         return self._msg_id
 
-    def reset_msg_id(self) -> None:
-        """Reset message ID to start of new session.
-
-        Useful for long-running applications to avoid potential
-        ID collision issues in extended sessions.
-        """
-        self._reset_message_id_session()
-
     def _reset_message_id_session(self) -> None:
         """Reset message ID and session tracking to start of new session."""
         self._msg_id = commands.reset_message_id()
         self._session_start_time = time.time()
         self._session_command_count = 0
-
-    def is_msg_id_exhausted(self) -> bool:
-        """Check if message ID is approaching exhaustion.
-
-        Returns:
-            True if message ID is in the last 10% of available values
-        """
-        return commands.is_message_id_exhausted(self._msg_id)
-
-    def get_session_info(
-        self,
-    ) -> dict[str, float | int | tuple[int, int] | bool]:
-        """Get information about the current message ID session.
-
-        Returns:
-            Dictionary with session start time, command count, and duration
-        """
-        current_time = time.time()
-        return {
-            "session_start_time": self._session_start_time,
-            "session_duration_hours": (current_time - self._session_start_time) / 3600,
-            "session_command_count": self._session_command_count,
-            "message_id": self._msg_id,
-            "message_id_exhausted": self.is_msg_id_exhausted(),
-        }
 
     @_classproperty
     def model_name(self) -> str | None:
@@ -274,7 +238,7 @@ class BaseDevice(ABC):
                     exc_info=True,
                 )
                 raise
-            except CharacteristicMissingError as ex:
+            except RuntimeError as ex:
                 self._logger.debug(
                     "%s: characteristic missing (%s). RSSI: %s",
                     self.name,
@@ -321,9 +285,9 @@ class BaseDevice(ABC):
         """Execute command and read response."""
         assert self._client is not None  # nosec
         if not self._read_char:
-            raise CharacteristicMissingError("Read characteristic missing")
+            raise RuntimeError("Read characteristic missing")
         if not self._write_char:
-            raise CharacteristicMissingError("Write characteristic missing")
+            raise RuntimeError("Write characteristic missing")
         for command in commands:
             await self._client.write_gatt_char(
                 self._write_char,
@@ -421,7 +385,7 @@ class BaseDevice(ABC):
                     self._notification_handler,  # type: ignore[arg-type]
                 )
             else:
-                raise CharacteristicMissingError("Read characteristic not resolved")
+                raise RuntimeError("Read characteristic not resolved")
 
             # Allow device to stabilize after connection
             await asyncio.sleep(0.5)

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Sequence
 
-from ..commands import encoder as doser_commands
-from ..storage.models import DoserStatus, parse_doser_payload
+from .. import encoder as doser_commands
+from ..status_parser import DoserStatus, parse_doser_payload
 from .base_device import BaseDevice
 
 

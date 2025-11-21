@@ -1,7 +1,10 @@
-"""Status parsing models for device BLE notifications.
+"""BLE status payload parser for Chihiros devices.
 
-This module combines status parsing functionality for both doser and light devices,
-providing structured representations of the raw BLE payload data.
+Parses raw BLE notification bytes into structured dataclasses:
+- DoserStatus: Pump status with head data and lifetime totals
+- LightStatus: Light status with schedule keyframes
+
+Used by device classes to decode notifications from the BLE UART service.
 """
 
 from __future__ import annotations

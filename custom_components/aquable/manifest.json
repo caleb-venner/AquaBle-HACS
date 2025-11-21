@@ -1,0 +1,50 @@
+{
+  "domain": "aquable",
+  "name": "AquaBle",
+  "version": "3.0.0",
+  "codeowners": ["@caleb-venner"],
+  "config_flow": true,
+  "dependencies": ["bluetooth"],
+  "documentation": "https://github.com/caleb-venner/AquaBle-dev",
+  "issue_tracker": "https://github.com/caleb-venner/AquaBle-dev/issues",
+  "iot_class": "local_polling",
+  "requirements": ["bleak>=0.21.0", "bleak-retry-connector>=3.0.0"],
+  "bluetooth": [
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*WRGB*",
+      "manufacturer_id": 0
+    },
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*Commander*",
+      "manufacturer_id": 0
+    },
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*Doser*",
+      "manufacturer_id": 0
+    },
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*Dosing*",
+      "manufacturer_id": 0
+    },
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*Light*",
+      "manufacturer_id": 0
+    },
+    {
+      "service_uuid": "6e400001-b5a3-f393-e0a9-e50e24dcca9e",
+      "connectable": true,
+      "local_name": "*LED*",
+      "manufacturer_id": 0
+    }
+  ]
+}

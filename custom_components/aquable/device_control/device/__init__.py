@@ -6,7 +6,6 @@ from typing import Type
 
 from bleak import BleakScanner
 
-from ..errors import DeviceNotFoundError
 from .base_device import BaseDevice
 from .doser import Doser
 from .light import LightDevice
@@ -37,7 +36,7 @@ def get_model_class_from_name(
     """Get device class name from device name."""
     model_class = CODE2MODEL.get(device_name[:-12])
     if model_class is None:
-        raise DeviceNotFoundError(device_name, details={"reason": "Device model code not found"})
+        raise RuntimeError(f"Device model code not found for {device_name}")
     return model_class
 
 
@@ -49,7 +48,7 @@ async def get_device_from_address(device_address: str) -> BaseDevice:
         dev: BaseDevice = model_class(ble_dev)
         return dev
 
-    raise DeviceNotFoundError(device_address)
+    raise RuntimeError(f"Device not found at address {device_address}")
 
 
 __all__ = [

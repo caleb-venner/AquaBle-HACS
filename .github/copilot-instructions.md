@@ -12,7 +12,7 @@ IMPORTANT: This file contains instructions for automated coding assistants and c
 - Device Classes (`device/`): `BaseDevice` with specific implementations (Doser, LightDevice, etc.) handling BLE connection lifecycle
 - Command System (`commands/encoder.py`): Encodes BLE commands with message ID management (skipping 0x5A/90), checksums, and structured byte arrays
 - Status Models (`storage/models.py`): Parse BLE notifications into `DoserStatus` and `LightStatus` dataclasses
-- HA Entity Platforms (planned): Sensor, number, light, time, select, button platforms for device control
+- HA Entity Platforms: Sensor platform for monitoring; all control via services
 - HA Coordinator (planned): `DataUpdateCoordinator` for managing device state updates
 - Config Flow (planned): Bluetooth device discovery and setup UI
 

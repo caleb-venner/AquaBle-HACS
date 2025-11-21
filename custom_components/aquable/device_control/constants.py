@@ -37,3 +37,22 @@ BLE_DOSER_SCHEDULE_WAIT = 2.0  # Wait time for doser schedule confirmation
 # Frontend API timeouts (seconds) - should match backend defaults
 FRONTEND_COMMAND_TIMEOUT_DEFAULT = 10
 FRONTEND_COMMAND_TIMEOUT_AUTO_SETTINGS = 15
+
+# ============================================================================
+# BLE Connection and Retry Constants
+# ============================================================================
+
+# Connection retry behavior
+DEFAULT_ATTEMPTS = 3  # Number of retry attempts for BLE operations
+
+# Connection timing
+DISCONNECT_DELAY = 120  # Seconds to wait before auto-disconnecting idle device
+BLEAK_BACKOFF_TIME = 0.25  # Seconds to wait before retrying after BLE error
+
+# ============================================================================
+# Message ID Session Management
+# ============================================================================
+
+# Message ID session management constants
+MESSAGE_ID_RESET_INTERVAL_HOURS = 24.0  # Hours before resetting message ID session
+MESSAGE_ID_MAX_SESSION_COMMANDS = 1000  # Max commands before resetting message ID session

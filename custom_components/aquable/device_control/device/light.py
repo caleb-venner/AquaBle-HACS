@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Sequence
 
-from ..commands import encoder as commands
-from ..storage.models import LightStatus, parse_light_payload
-from ..utils.schedule import get_schedules_with_status
+from .. import encoder as commands
+from ..status_parser import LightStatus, parse_light_payload
 from .base_device import BaseDevice
 
 
@@ -31,23 +30,6 @@ class LightDevice(BaseDevice):
             if mode == 0xFE:
                 try:
                     status = parse_light_payload(data)
-                    # If in auto mode, augment programs with live status
-                    if (
-                        status
-                        and hasattr(status, "profile")
-                        and status.profile
-                        and status.profile.mode == "auto"
-                        and status.profile.programs
-                    ):
-                        # Pydantic models are immutable, so we need to create a new profile
-                        programs_with_status = get_schedules_with_status(
-                            [p.dict() for p in status.profile.programs]
-                        )
-                        # Re-create program objects to match Pydantic model
-                        # This is a bit inefficient but necessary if we don't modify the model
-                        # For now, we assume the frontend can handle the dicts
-                        status.profile.programs = programs_with_status
-
                     return status
                 except Exception:
                     self._logger.exception("Failed to parse light status payload")
