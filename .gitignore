@@ -52,3 +52,4 @@ dmypy.json
 .storage/
 home-assistant_v2.db
 home-assistant.log
+ha-config/
