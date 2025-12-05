@@ -11,8 +11,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import CONF_DEVICE_TYPE, DEVICE_TYPE_DOSER, DEVICE_TYPE_LIGHT, DOMAIN
 from .coordinator import AquaBleCoordinator
-from .device_control.device.doser import Doser
-from .device_control.device.light import LightDevice
+from .device_control.device import get_model_class_from_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -25,6 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up AquaBle from a config entry."""
     address = entry.data[CONF_ADDRESS]
     device_type = entry.data[CONF_DEVICE_TYPE]
+    device_name = entry.data.get(CONF_NAME, address)
 
     _LOGGER.debug("Setting up AquaBle device: %s (%s)", address, device_type)
 
@@ -33,13 +33,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not ble_device:
         raise ConfigEntryNotReady(f"Could not find device {address}")
 
-    # Create appropriate device instance
-    if device_type == DEVICE_TYPE_DOSER:
-        device = Doser(ble_device)
-    elif device_type == DEVICE_TYPE_LIGHT:
-        device = LightDevice(ble_device)
-    else:
-        _LOGGER.error("Unknown device type: %s", device_type)
+    # Get the correct model class based on device name
+    try:
+        model_class = get_model_class_from_name(device_name)
+        device = model_class(ble_device)
+    except RuntimeError as err:
+        _LOGGER.error("Failed to find model for device %s: %s", device_name, err)
         return False
 
     # Create coordinator
