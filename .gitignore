@@ -53,3 +53,5 @@ dmypy.json
 home-assistant_v2.db
 home-assistant.log
 ha-config/
+/Chihiros-payload.json
+/notes/power_table_wrgb2_pro_120.md
